@@ -91,7 +91,6 @@ class PreviewMailTransport extends Transport
         foreach ($this->recipients as $recipient) {
             $to = $recipient;
             $message->getHeaders()->remove('To');
-            $message->getHeaders()->set($to);
 
             // Separate headers from body
             if (false !== $endHeaders = strpos($messageStr, "\r\n\r\n")) {
@@ -120,6 +119,23 @@ class PreviewMailTransport extends Transport
         }
 
         return 1;
+    }
+
+    /**
+     * Return php mail extra params to use for invoker->mail.
+     *
+     * @param $extraParams
+     * @param $reversePath
+     *
+     * @return string|null
+     */
+    private function _formatExtraParams($extraParams, $reversePath)
+    {
+        if (false !== strpos($extraParams, '-f%s')) {
+            $extraParams = empty($reversePath) ? str_replace('-f%s', '', $extraParams) : sprintf($extraParams, escapeshellarg($reversePath));
+        }
+
+        return !empty($extraParams) ? $extraParams : null;
     }
 
     /**
