@@ -86,9 +86,8 @@ class PreviewMailTransport extends Transport
         // Remove headers that would otherwise be duplicated
         $message->getHeaders()->remove('Subject');
 
-        $messageStr = $message->toString();
-
         foreach ($this->recipients as $recipient) {
+            $messageStr = $message->toString();
             $to = $recipient;
             $message->getHeaders()->remove('To');
 
@@ -100,8 +99,6 @@ class PreviewMailTransport extends Transport
                 $headers = $messageStr."\r\n";
                 $body = '';
             }
-
-            unset($messageStr);
 
             if ("\r\n" != PHP_EOL) {
                 // Non-windows (not using SMTP)
