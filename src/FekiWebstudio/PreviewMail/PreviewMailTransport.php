@@ -43,7 +43,6 @@ class PreviewMailTransport extends Transport
     {
         $this->recipients = $recipients;
         $this->_invoker = $invoker;
-        $this->_eventDispatcher = $eventDispatcher;
     }
 
     /**
