@@ -9,6 +9,7 @@ namespace FekiWebstudio\PreviewMail;
 
 use Illuminate\Mail\Transport\Transport;
 use Swift_Mime_Message;
+use Swift_Transport_MailInvoker;
 
 /**
  * Class PreviewMailTransport defines a driver to use on
@@ -26,14 +27,45 @@ class PreviewMailTransport extends Transport
      */
     protected $recipients;
 
+    /** Additional parameters to pass to mail() */
+    private $_extraParams = '-f%s';
+
+    /** An invoker that calls the mail() function */
+    private $_invoker;
+
     /**
      * PreviewMailTransport constructor.
      *
      * @param array|string $recipients
+     * @param Swift_Transport_MailInvoker $invoker
      */
-    public function __construct($recipients)
+    public function __construct($recipients, Swift_Transport_MailInvoker $invoker)
     {
         $this->recipients = $recipients;
+        $this->_invoker = $invoker;
+        $this->_eventDispatcher = $eventDispatcher;
+    }
+
+    /**
+     * Not used.
+     */
+    public function isStarted()
+    {
+        return false;
+    }
+
+    /**
+     * Not used.
+     */
+    public function start()
+    {
+    }
+
+    /**
+     * Not used.
+     */
+    public function stop()
+    {
     }
 
     /**
@@ -49,12 +81,43 @@ class PreviewMailTransport extends Transport
 
         $this->includeRecipientInSubject($message);
 
-        foreach ($this->recipients as $recipient) {
-            mail($recipient, $message->getSubject(), $message->toString());
-        }
+        $subjectHeader = $message->getHeaders()->get('Subject');
+        $subject = $subjectHeader ? $subjectHeader->getFieldBody() : '';
 
-        if (is_array($this->recipients)) {
-            return count($this->recipients);
+        // Remove headers that would otherwise be duplicated
+        $message->getHeaders()->remove('Subject');
+
+        $messageStr = $message->toString();
+
+        foreach ($this->recipients as $recipient) {
+            $to = $recipient;
+            $message->getHeaders()->remove('To');
+            $message->getHeaders()->set($to);
+
+            // Separate headers from body
+            if (false !== $endHeaders = strpos($messageStr, "\r\n\r\n")) {
+                $headers = substr($messageStr, 0, $endHeaders)."\r\n"; //Keep last EOL
+                $body = substr($messageStr, $endHeaders + 4);
+            } else {
+                $headers = $messageStr."\r\n";
+                $body = '';
+            }
+
+            unset($messageStr);
+
+            if ("\r\n" != PHP_EOL) {
+                // Non-windows (not using SMTP)
+                $headers = str_replace("\r\n", PHP_EOL, $headers);
+                $subject = str_replace("\r\n", PHP_EOL, $subject);
+                $body = str_replace("\r\n", PHP_EOL, $body);
+            } else {
+                // Windows, using SMTP
+                $headers = str_replace("\r\n.", "\r\n..", $headers);
+                $subject = str_replace("\r\n.", "\r\n..", $subject);
+                $body = str_replace("\r\n.", "\r\n..", $body);
+            }
+
+            $this->_invoker->mail($to, $subject, $body, $headers, $this->_formatExtraParams($this->_extraParams, $reversePath));
         }
 
         return 1;

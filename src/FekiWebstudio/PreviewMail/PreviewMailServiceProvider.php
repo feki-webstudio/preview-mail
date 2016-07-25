@@ -28,7 +28,7 @@ class PreviewMailServiceProvider extends ServiceProvider
                         throw new InvalidArgumentException("Please set the e-mail recipients for preview.");
                     }
 
-                    return new PreviewMailTransport($recipients);
+                    return new PreviewMailTransport($recipients, new \Swift_Transport_SimpleMailInvoker());
                 });
 
                 return $manager;
