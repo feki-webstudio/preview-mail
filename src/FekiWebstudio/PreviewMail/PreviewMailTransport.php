@@ -115,7 +115,7 @@ class PreviewMailTransport extends Transport
                 $body = str_replace("\r\n.", "\r\n..", $body);
             }
 
-            $this->_invoker->mail($to, $subject, $body, $headers, $this->_formatExtraParams($this->_extraParams, $reversePath));
+            $this->_invoker->mail($to, $subject, $body, $headers, $this->_formatExtraParams($this->_extraParams, null));
         }
 
         return 1;
